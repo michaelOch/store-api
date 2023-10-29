@@ -1,19 +1,29 @@
 import { Router } from "express";
 import multer from 'multer';
 import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
+import env from "dotenv";
+env.config();
 
 import Product, { serializeUser } from "../model/product";
 import SubCategory from "../model/subCategory";
 import Sizing from "../model/sizing";
 import { adminAuthorization, userAuthentication } from "../middleware/adminAuth";
 
+cloudinary.config({ 
+    cloud_name: process.env.CLOUDINARY_NAME, 
+    api_key: process.env.CLOUDINARY_API_KEY, 
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true 
+  });
+
 const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
-        cb(null, './uploads/');
-    },
+    // destination: function(req, file, cb) {
+    //     cb(null, './uploads/');
+    // },
     filename: function(req, file, cb) {
         cb(null, new Date().toISOString().replace(/:/g, '-') + '-' + file.originalname);
-    }
+    },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -131,13 +141,20 @@ export default ({ config, db }) => {
         ) {
 				return res.status(400).send({ status: false, msg: "Kindly add all required fields" });
         }
+
+        const multiplePicturePromise = req.files.map((picture) =>
+            cloudinary.uploader.upload(picture.path)
+        );
+
+        const imageResponses = await Promise.all(multiplePicturePromise);
             
         const product = new Product({
             subcategory: subcategories,
             name: req.body.name,
             sku: req.body.sku,
             description: req.body.description,
-            image: req.files.map(file => file.path),
+            // image: req.files.map(file => file.path),
+            image: imageResponses,
             trending: req.body.trending,
             status: 'new'
         });
@@ -216,10 +233,16 @@ export default ({ config, db }) => {
     });
 
     //  Upload Product Image
-    api.put('/admin/upload/:productId', adminAuthorization, upload.array('productImage', 3), (req, res) => {
+    api.put('/admin/upload/:productId', adminAuthorization, upload.array('productImage', 3), async (req, res) => {
+
+        const multiplePicturePromise = req.files.map((picture) =>
+            cloudinary.uploader.upload(picture.path)
+        );
+
+        const imageResponses = await Promise.all(multiplePicturePromise);
 
         Product.findOneAndUpdate({_id: req.params.productId}, {$set: {
-            image: req.files.map(file => file.path)
+            image: imageResponses
         }},{ new: true })
             .then(data => {
                 res.json(data);

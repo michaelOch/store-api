@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: "*",
+    origin: "https://cherrystore-xfki.onrender.com",
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
 }));
 

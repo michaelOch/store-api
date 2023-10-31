@@ -20,7 +20,7 @@ var app = express();
 // });
 
 app.use(cors({
-    origin: "https://cherrystore-xfki.onrender.com",
+    origin: "*",
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
 }));
 
